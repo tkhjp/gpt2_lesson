@@ -28,11 +28,9 @@ from model import GPTConfig, GPT
 
 logger = get_logger(__name__)
 
-tokenizer = AutoTokenizer.from_pretrained(
-    "gpt2",
-    padding_side="left"
-)
+tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese", padding_side="left")
 tokenizer.pad_token = tokenizer.eos_token
+
 
 # init the model and laod checkpoints
 print("Initializing a new model from scratch")

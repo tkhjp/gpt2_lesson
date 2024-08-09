@@ -265,6 +265,8 @@ for epoch in range(0, config.num_train_epochs):
 
     accelerator.wait_for_everyone()
     output_dir_ = os.path.join(config.output_dir, f"epoch_{epoch}")
+    torch.save(accelerator.unwrap_model(model).state_dict(), os.path.join(output_dir_, "pytorch_model.bin"))
+
     accelerator.save_state(output_dir_)
     tokenizer.save_pretrained(config.output_dir)
 

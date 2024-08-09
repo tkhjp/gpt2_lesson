@@ -113,6 +113,22 @@ class MLP(nn.Module):
         return x
 
 
+class SwiGLU(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc1 = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
+        self.c_fc2 = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
+        self.dropout = nn.Dropout(config.dropout)
+
+    def forward(self, x):
+        # Apply GELU on the first linear projection and multiply it with the second linear projection
+        x = F.gelu(self.c_fc1(x)) * self.c_fc2(x)
+        x = self.c_proj(x)
+        x = self.dropout(x)
+        return x
+
+
 class Block(nn.Module):
 
     def __init__(self, config):
@@ -120,7 +136,8 @@ class Block(nn.Module):
         self.ln_1 = BiasedLayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = BiasedLayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = MLP(config)
+        # self.mlp = MLP(config)
+        self.mlp = SwiGLU(config)
 
     def forward(self, x, attention_mask=None):
         x = x + self.attn(self.ln_1(x), attention_mask=attention_mask)

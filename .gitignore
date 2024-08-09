@@ -122,3 +122,5 @@ pylint-output.txt
 
 # Profiling data
 .prof
+
+experiments

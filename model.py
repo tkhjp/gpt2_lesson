@@ -97,6 +97,22 @@ class CausalSelfAttention(nn.Module):
         return y
 
 
+class SwiGLU(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim) -> None:
+        super().__init__()
+        # The weights should be initialized as Linear layers
+        self.w1 = nn.Linear(input_dim, hidden_dim)
+        self.w2 = nn.Linear(input_dim, hidden_dim)
+        self.w3 = nn.Linear(hidden_dim, input_dim)
+
+    def forward(self, x):
+        x1 = self.w1(x)
+        x2 = self.w2(x)
+        hidden = F.silu(x1) * x2  # SwiGLU activation
+        return self.w3(hidden)
+
+
 class MLP(nn.Module):
 
     def __init__(self, config):
@@ -112,23 +128,6 @@ class MLP(nn.Module):
         x = self.dropout(x)
         return x
 
-
-class SwiGLU(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.c_fc1 = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
-        self.c_fc2 = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
-        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
-        self.dropout = nn.Dropout(config.dropout)
-
-    def forward(self, x):
-        # Apply GELU on the first linear projection and multiply it with the second linear projection
-        x = F.gelu(self.c_fc1(x)) * self.c_fc2(x)
-        x = self.c_proj(x)
-        x = self.dropout(x)
-        return x
-
-
 class Block(nn.Module):
 
     def __init__(self, config):
@@ -137,11 +136,14 @@ class Block(nn.Module):
         self.attn = CausalSelfAttention(config)
         self.ln_2 = BiasedLayerNorm(config.n_embd, bias=config.bias)
         # self.mlp = MLP(config)
-        self.mlp = SwiGLU(config)
+        # self.mlp = SwiGLU(config)
+        self.ffn = SwiGLU(config.n_embd, 4 * config.n_embd)
 
     def forward(self, x, attention_mask=None):
+        # x = x + self.attn(self.ln_1(x), attention_mask=attention_mask)
+        # x = x + self.mlp(self.ln_2(x))
         x = x + self.attn(self.ln_1(x), attention_mask=attention_mask)
-        x = x + self.mlp(self.ln_2(x))
+        x = x + self.ffn(self.ln_2(x))
         return x
 
 

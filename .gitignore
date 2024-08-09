@@ -124,3 +124,5 @@ pylint-output.txt
 .prof
 
 experiments
+
+experiments/

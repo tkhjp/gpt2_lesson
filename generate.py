@@ -34,6 +34,7 @@ tokenizer = AutoTokenizer.from_pretrained(
 )
 tokenizer.pad_token = tokenizer.eos_token
 
+
 # init the model and laod checkpoints
 print("Initializing a new model from scratch")
 model_args = dict(

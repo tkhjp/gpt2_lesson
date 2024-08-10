@@ -97,6 +97,22 @@ class CausalSelfAttention(nn.Module):
         return y
 
 
+class SwiGLU(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim) -> None:
+        super().__init__()
+        # The weights should be initialized as Linear layers
+        self.w1 = nn.Linear(input_dim, hidden_dim)
+        self.w2 = nn.Linear(input_dim, hidden_dim)
+        self.w3 = nn.Linear(hidden_dim, input_dim)
+
+    def forward(self, x):
+        x1 = self.w1(x)
+        x2 = self.w2(x)
+        hidden = F.silu(x1) * x2  # SwiGLU activation
+        return self.w3(hidden)
+
+
 class MLP(nn.Module):
 
     def __init__(self, config):
@@ -112,7 +128,6 @@ class MLP(nn.Module):
         x = self.dropout(x)
         return x
 
-
 class Block(nn.Module):
 
     def __init__(self, config):
@@ -120,11 +135,15 @@ class Block(nn.Module):
         self.ln_1 = BiasedLayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = BiasedLayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = MLP(config)
+        # self.mlp = MLP(config)
+        # self.mlp = SwiGLU(config)
+        self.ffn = SwiGLU(config.n_embd, 4 * config.n_embd)
 
     def forward(self, x, attention_mask=None):
+        # x = x + self.attn(self.ln_1(x), attention_mask=attention_mask)
+        # x = x + self.mlp(self.ln_2(x))
         x = x + self.attn(self.ln_1(x), attention_mask=attention_mask)
-        x = x + self.mlp(self.ln_2(x))
+        x = x + self.ffn(self.ln_2(x))
         return x
 
 
